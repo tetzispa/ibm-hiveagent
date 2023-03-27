@@ -1,0 +1,65 @@
+---
+# tasks file for ibm-HiveAgent
+- name: Include Debian 8/9 variables.
+  include_vars: "Debian-8.yml"
+  when: (ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "8") or
+          (ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "9")
+          
+- name: Include Debian 10+ variables.
+  include_vars: "Debian-10.yml"
+  when: (ansible_facts['distribution_major_version'] == "10" and ansible_facts['distribution'] == "Debian") or
+          (ansible_facts['distribution_major_version'] == "11" and ansible_facts['distribution'] == "Debian")
+
+- name: Include Ubuntu variables.
+  include_vars: "Ubuntu.yml"
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+- name: Include RedHat Family 7 variables.
+  include_vars: "RedHat-7.yml"
+  when: (ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+- name: Include RedHat Family 8+ variables.
+  include_vars: "RedHat-8.yml"
+  when: (ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] >= "8")
+
+- name: Define ibm_packages.
+  set_fact:
+    ibm_packages: "{{ __ibm_packages | list }}"
+  when: ibm_packages is not defined
+
+- name: Ensure ibm_packages is installed.
+  package:
+    name: "{{ ibm_packages }}" 
+    state: present
+
+- name: "Updated ansible package_facts"
+  package_facts:
+    manager: "auto"
+
+- name: "Packages test result"
+  debug: 
+    msg: "{{ item }} found"
+  when:  item in ansible_facts.packages
+  loop: "{{ ibm_packages }}"
+
+- fail: 
+    msg: "{{ item }} not found"
+  when: item not in ansible_facts.packages
+  loop: "{{ ibm_packages }}"
+
+- name: "check for service {{ servicename }} status"
+  shell: 
+    cmd: systemctl status {{ servicename }} 
+  ignore_errors: true
+  register: servicestatus
+  changed_when: false
+
+- name: Installing the Hive Agent on Linux endpoints.
+  include_tasks: "configure-{{ ansible_os_family }}.yml"
+  when: servicestatus.rc | int != 0
+
+- name: "Show service service {{ servicename }} exists"
+  debug:
+    msg: '{{ servicename }} exists.'
+  when: servicestatus.rc | int == 0
+

@@ -1,0 +1,13 @@
+- name: download latest agent
+  get_url:
+    url: "{{ debian_url_agent }}"
+    dest: /tmp/hive-installer-0.60.0-x86_64.deb
+
+- name: Installing the Hive Agent on debian-based Linux endpoints
+  shell:
+    cmd: sudo RQTPARAMS="{{ validate_server_url }} --gids {{ validate_group_IDs }}" dpkg -i /tmp/hive-installer-0.60.0-x86_64.deb
+
+- name: Delete archive keeperx
+  file:
+    path: /tmp/hive-installer-0.60.0-x86_64.deb
+    state: absent

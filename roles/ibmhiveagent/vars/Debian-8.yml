@@ -1,0 +1,8 @@
+---
+__ibm_packages:
+  - gcc 
+  - curl 
+  - make 
+  - dkms 
+  - kmod 
+  - linux-headers-{{ ansible-kernel }}

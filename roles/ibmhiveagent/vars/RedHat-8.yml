@@ -1,0 +1,8 @@
+---
+__ibm_packages:
+  - gcc 
+  - curl 
+  - elfutils-libelf-devel 
+  - kernel-devel
+  - llvm-toolset
+  - make

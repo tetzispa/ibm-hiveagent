@@ -1,0 +1,47 @@
+---
+- name: download latest agent
+  get_url:
+    url: "{{ redhat_url_agent }}"
+    dest: /tmp/hive-installer-0.60.0-x86_64.rpm 
+
+- name: Installing the Hive Agent on rpm-based Linux endpoints
+  shell:
+    cmd: sudo RQTPARAMS="{{ validate_server_url }} --gids {{ validate_group_IDs }}" rpm -i /tmp/hive-installer-0.60.0-x86_64.rpm
+
+- name: Delete archive keeperx
+  file:
+    path: /tmp/hive-installer-0.60.0-x86_64.rpm
+    state: absent
+
+- name: register keeperx.env file exist or not
+  stat:
+    path: /etc/reaqtahive.d/keeperx.env
+  when: ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+  register: check_file_keeperx 
+
+- name: report file exists
+  debug:
+    msg: "The file /etc/reaqtahive.d/keeperx.env exist"
+  when: check_file_keeperx.stat.exists and ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+
+- fail:
+    msg: "The file /etc/reaqtahive.d/keeperx.env doesn't exist"
+  failed_when: check_file_keeperx.stat.exists == False and ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+
+- name: Edit keeperx.env file
+  lineinfile:
+    path: /etc/reaqtahive.d/keeperx.env
+    line: KMOD_IGNORE_TAINT=1
+    insertbefore: EOF
+  when: check_file_keeperx.stat.exists and (ansible_facts['os_family'] == "RedHat") and (ansible_facts['distribution_major_version'] == "7")
+
+- name: hard reset keeperx service
+  shell:
+    cmd: systemctl reset-failed keeperx
+  when: ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+
+- name: Make sure a keeperx service unit is running
+  systemd:
+    state: started
+    name: "{{ servicename }}"
+  when: ansible_facts['os_family'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
